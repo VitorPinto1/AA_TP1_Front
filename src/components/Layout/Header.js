@@ -1,6 +1,9 @@
 import { Link } from 'react-router-dom'
+import { useAuth } from '../../hooks/useAuth'
 
 function Header() {
+  const { isAuthenticated, isAdmin } = useAuth()
+
   return (
     <header className="header">
       <div className="header-container">
@@ -8,9 +11,9 @@ function Header() {
           <h1>Théâtre</h1>
         </Link>
         <nav className="nav">
-          <Link to="/spectacles">Spectacles</Link>
-          <Link to="/representations">Représentations</Link>
-          <Link to="/orders">Mes Commandes</Link>
+          <Link to="/programmation">Programmation</Link>
+          {isAdmin && <Link to="/dashboard">Dashboard</Link>}
+          {isAuthenticated && <Link to="/orders">Mes Commandes</Link>}
           <Link to="/user">Mon Compte</Link>
         </nav>
       </div>

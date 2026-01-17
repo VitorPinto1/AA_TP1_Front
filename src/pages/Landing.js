@@ -12,23 +12,17 @@ function Landing() {
             et réservez vos places au meilleur tarif.
           </p>
           <div className="hero__cta">
-            <Link to="/spectacles" className="btn btn-primary">
-              Voir les spectacles
+            <Link to="/programmation" className="btn btn-primary">
+              Voir la programmation
             </Link>
-            <Link to="/representations" className="btn btn-secondary">
-              Représentations à venir
-            </Link>
+            <Link to="/orders" className="btn btn-secondary">Mes commandes</Link>
           </div>
         </div>
       </section>
 
       <section className="features">
-        <Link to="/representations" className="feature-card feature-card-link">
-          <h3>Programmation claire</h3>
-          <p>Filtres par spectacle et représentation pour trouver rapidement.</p>
-        </Link>
-        <Link to="/spectacles" className="feature-card feature-card-link">
-          <h3>Espectacles</h3>
+        <Link to="/programmation" className="feature-card feature-card-link">
+          <h3>Programmation</h3>
           <p>Consultez les spectacles à l’affiche et réservez vos places.</p>
         </Link>
         <Link to="/orders" className="feature-card feature-card-link">

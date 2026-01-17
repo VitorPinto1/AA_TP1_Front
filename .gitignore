@@ -1,29 +1,126 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
-/node_modules
+# ============================================
+# Dependencies
+# ============================================
+node_modules/
 /.pnp
 .pnp.js
+.pnp.*
+.yarn/
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.yarn-integrity
 
-# testing
-/coverage
-
-# production
+# ============================================
+# Build outputs
+# ============================================
 /build
+/dist
+*.tsbuildinfo
 
-# misc
-.DS_Store
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-.env.example
+# ============================================
+# Testing
+# ============================================
+/coverage
+*.lcov
+.nyc_output
+.jest/
+
+# ============================================
+# Environment variables
+# ============================================
 .env
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+.env*.local
 
+# ============================================
+# Logs
+# ============================================
+logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+lerna-debug.log*
+pnpm-debug.log*
 
-package-lock.json
-package.json
+# ============================================
+# Editor directories and files
+# ============================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+.vscode-test
 
+# ============================================
+# OS generated files
+# ============================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# ============================================
+# Cache directories
+# ============================================
+.cache/
+.parcel-cache/
+.npm
+.eslintcache
+.stylelintcache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+.fusebox/
+
+# ============================================
+# Temporary files
+# ============================================
+*.tmp
+*.temp
+*.tgz
+
+# ============================================
+# Framework specific
+# ============================================
+# Next.js
+.next
+out
+
+# Nuxt.js
+.nuxt
+
+# Gatsby (note: public/ should be versioned for React apps)
+
+# Storybook
+storybook-static
+
+# Serverless
+.serverless/
+
+# DynamoDB Local
+.dynamodb/
+
+# ============================================
+# Other
+# ============================================
+.node_repl_history
+.tern-port

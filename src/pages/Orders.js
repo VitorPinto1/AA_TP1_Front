@@ -1,24 +1,7 @@
-import { useState, useEffect } from 'react'
-import { ordersService } from '../services/api'
+import { useOrders } from '../hooks/useOrders'
 
 function Orders() {
-  const [orders, setOrders] = useState([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    loadOrders()
-  }, [])
-
-  const loadOrders = async () => {
-    try {
-      const data = await ordersService.getAll()
-      setOrders(data)
-    } catch (error) {
-      console.error('Erreur lors du chargement des commandes:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const { orders, loading, error } = useOrders()
 
   if (loading) {
     return <div className="loading">Chargement...</div>
@@ -27,6 +10,7 @@ function Orders() {
   return (
     <div className="orders-page">
       <h2>Mes Commandes</h2>
+      {error && <div className="alert error">{error}</div>}
       <div className="orders-list">
         {orders.length === 0 ? (
           <p>Aucune commande pour le moment.</p>

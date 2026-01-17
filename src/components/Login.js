@@ -1,6 +1,10 @@
 import { useState } from 'react'
+import { useAuth } from '../hooks/useAuth'
+import { validateLogin } from '../utils/validators'
+import { handleApiError } from '../utils/errorHandler'
 
 function Login({ onLoginSuccess, onSwitchToCreateAccount }) {
+  const { login } = useAuth()
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -22,36 +26,22 @@ function Login({ onLoginSuccess, onSwitchToCreateAccount }) {
     setError('')
     setLoading(true)
 
-    // Validation basique
-    if (!formData.email || !formData.password) {
-      setError('Veuillez remplir tous les champs')
-      setLoading(false)
-      return
-    }
-
-    // Validation email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(formData.email)) {
-      setError('Veuillez entrer un email valide')
+    // Validation
+    const validation = validateLogin(formData)
+    if (!validation.valid) {
+      setError(Object.values(validation.errors)[0])
       setLoading(false)
       return
     }
 
     try {
-      // TODO: Appel API pour la connexion
-      // const response = await usersService.login(formData.email, formData.password)
-      // Pour l'instant, on simule juste le succès
-      console.log('Tentative de connexion:', formData)
-      
-      // Simuler un délai
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
+      await login(formData.email, formData.password)
       if (onLoginSuccess) {
         onLoginSuccess()
       }
     } catch (err) {
-      setError('Erreur lors de la connexion. Vérifiez vos identifiants.')
-      console.error('Erreur de connexion:', err)
+      const errorMessage = handleApiError(err)
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }

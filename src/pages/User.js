@@ -1,38 +1,25 @@
 import { useState, useEffect } from 'react'
-import { usersService } from '../services/api'
+import { useAuth } from '../hooks/useAuth'
 import Login from '../components/Login'
 import CreateAccount from '../components/CreateAccount'
 
 function User() {
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [view, setView] = useState('menu') 
+  const { user, loading, updateUser } = useAuth()
+  const [view, setView] = useState('menu')
 
   useEffect(() => {
-    loadUser()
-  }, [])
-
-  const loadUser = async () => {
-    try {
-      const userId = 1 
-      const data = await usersService.getById(userId)
-      setUser(data)
-      if (data) {
-        setView('profile')
-      } else {
-        setView('menu')
-      }
-    } catch (error) {
-      console.error('Erreur lors du chargement du profil:', error)
+    if (user) {
+      setView('profile')
+    } else {
       setView('menu')
-    } finally {
-      setLoading(false)
     }
-  }
+  }, [user])
 
-  const handleLoginSuccess = () => {
-    // Après connexion réussie, charger le profil
-    loadUser()
+  const handleLoginSuccess = async () => {
+    // L'utilisateur est déjà mis à jour via AuthContext
+    if (user) {
+      setView('profile')
+    }
   }
 
   const handleAccountCreated = () => {

@@ -14,7 +14,19 @@ async function fetchAPI(endpoint, options = {}) {
   try {
     const response = await fetch(url, config)
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      const error = new Error(`HTTP error! status: ${response.status}`)
+      error.response = {
+        status: response.status,
+        statusText: response.statusText,
+      }
+      // Essayer de récupérer le message d'erreur du body
+      try {
+        const errorData = await response.json()
+        error.message = errorData.message || error.message
+      } catch {
+        // Si le body n'est pas du JSON, on garde le message par défaut
+      }
+      throw error
     }
     return await response.json()
   } catch (error) {
