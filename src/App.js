@@ -6,6 +6,7 @@ import Spectacles from './pages/Spectacles'
 import Orders from './pages/Orders'
 import User from './pages/User'
 import Dashboard from './pages/Dashboard'
+import Creation from './pages/Creation'
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
             <Route path="/programmation" element={<Spectacles />} />
             <Route path="/orders" element={<Orders />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/creation" element={<Creation />} />
             <Route path="/user" element={<User />} />
           </Routes>
         </Layout>

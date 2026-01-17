@@ -13,6 +13,7 @@ function Header() {
         <nav className="nav">
           <Link to="/programmation">Programmation</Link>
           {isAdmin && <Link to="/dashboard">Dashboard</Link>}
+          {isAdmin && <Link to="/creation">Création</Link>}
           {isAuthenticated && <Link to="/orders">Mes Commandes</Link>}
           <Link to="/user">Mon Compte</Link>
         </nav>
