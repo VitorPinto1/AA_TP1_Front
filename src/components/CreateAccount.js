@@ -1,28 +1,36 @@
 import { useState } from 'react'
+import { useAuth } from '../hooks/useAuth'
+import { handleApiError } from '../utils/errorHandler'
 
 function CreateAccount({ onAccountCreated, onSwitchToLogin }) {
+  const { register } = useAuth()
   const [formData, setFormData] = useState({
     nom: '',
     prenom: '',
     email: '',
-    password: ''
+    password: '',
+    phone: ''
   })
   const [errors, setErrors] = useState({})
   const [passwordValidation, setPasswordValidation] = useState({
     length: false,
     uppercase: false,
+    lowercase: false,
+    digit: false,
     special: false
   })
   const [loading, setLoading] = useState(false)
 
   const validatePassword = (password) => {
     const validations = {
-      length: password.length >= 12,
+      length: password.length >= 8,
       uppercase: /[A-Z]/.test(password),
-      special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
+      lowercase: /[a-z]/.test(password),
+      digit: /\d/.test(password),
+      special: /[@$!%*?&]/.test(password)
     }
     setPasswordValidation(validations)
-    return validations.length && validations.uppercase && validations.special
+    return validations.length && validations.uppercase && validations.lowercase && validations.digit && validations.special
   }
 
   const handleChange = (e) => {
@@ -84,30 +92,24 @@ function CreateAccount({ onAccountCreated, onSwitchToLogin }) {
     }
 
     setLoading(true)
+    setErrors({})
 
     try {
-      // TODO: Appel API pour la création de compte
-      // const response = await usersService.create({
-      //   name: formData.nom,
-      //   surname: formData.prenom,
-      //   email: formData.email,
-      //   password: formData.password
-      // })
-      
-      console.log('Création de compte:', {
-        nom: formData.nom,
-        prenom: formData.prenom,
-        email: formData.email
+      // Appel API pour la création de compte
+      await register({
+        name: formData.prenom,  // Le backend attend "Name" pour le prénom
+        surname: formData.nom,  // Le backend attend "Surname" pour le nom
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone || null
       })
-      
-      // Simuler un délai
-      await new Promise(resolve => setTimeout(resolve, 500))
       
       if (onAccountCreated) {
         onAccountCreated()
       }
     } catch (err) {
-      setErrors({ submit: 'Erreur lors de la création du compte. Veuillez réessayer.' })
+      const errorMessage = handleApiError(err)
+      setErrors({ submit: errorMessage })
       console.error('Erreur de création de compte:', err)
     } finally {
       setLoading(false)
@@ -178,17 +180,36 @@ function CreateAccount({ onAccountCreated, onSwitchToLogin }) {
               <p className="requirements-title">Le mot de passe doit contenir :</p>
               <ul className="requirements-list">
                 <li className={passwordValidation.length ? 'valid' : 'invalid'}>
-                  Au moins 12 caractères
+                  Au moins 8 caractères
                 </li>
                 <li className={passwordValidation.uppercase ? 'valid' : 'invalid'}>
                   Au moins 1 majuscule
                 </li>
+                <li className={passwordValidation.lowercase ? 'valid' : 'invalid'}>
+                  Au moins 1 minuscule
+                </li>
+                <li className={passwordValidation.digit ? 'valid' : 'invalid'}>
+                  Au moins 1 chiffre
+                </li>
                 <li className={passwordValidation.special ? 'valid' : 'invalid'}>
-                  Au moins 1 caractère spécial
+                  Au moins 1 caractère spécial (@$!%*?&)
                 </li>
               </ul>
             </div>
           )}
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="phone">Téléphone (optionnel)</label>
+          <input
+            type="tel"
+            id="phone"
+            name="phone"
+            value={formData.phone}
+            onChange={handleChange}
+            placeholder="0612345678 ou +33612345678"
+          />
+          {errors.phone && <span className="field-error">{errors.phone}</span>}
         </div>
 
         {errors.submit && <div className="error-message">{errors.submit}</div>}

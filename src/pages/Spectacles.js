@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { spectaclesService, ordersService } from '../services/api'
+import { useNavigate } from 'react-router-dom'
+import { spectaclesService } from '../services/api'
 import SpectacleCard from '../components/SpectacleCard'
 import ReservationModal from '../components/ReservationModal'
 
@@ -61,8 +62,10 @@ const fallbackSpectacles = [
 ]
 
 function Spectacles() {
+  const navigate = useNavigate()
   const [spectacles, setSpectacles] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [selected, setSelected] = useState(null)
   const [status, setStatus] = useState(null)
 
@@ -86,17 +89,14 @@ function Spectacles() {
     }
   }
 
-  const handleReserve = async ({ spectacleId, quantity, date, notes }) => {
-    setStatus(null)
-    // Minimal payload; adapt to your API contract if different
-    const payload = {
-      spectacle_id: spectacleId,
-      quantity,
-      date,
-      notes,
-    }
-    await ordersService.create(payload)
-    setStatus('Réservation enregistrée !')
+  const handleReserve = ({ performanceId, quantity }) => {
+    // Rediriger vers la page de paiement avec les données de réservation
+    navigate('/payment', {
+      state: {
+        performanceId,
+        quantity,
+      }
+    })
   }
 
   if (loading) {

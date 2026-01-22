@@ -1,42 +1,66 @@
 import { useEffect, useMemo, useState } from 'react'
+import { spectaclesService } from '../services/api'
 import { validateReservation } from '../utils/validators'
 
 function ReservationModal({ spectacle, onClose, onConfirm }) {
-  const initialDate = useMemo(() => {
-    if (!spectacle?.date) return ''
-    // Ensure format YYYY-MM-DD for input[type=date]
-    return spectacle.date.slice(0, 10)
-  }, [spectacle])
-
   const [quantity, setQuantity] = useState(1)
-  const [date, setDate] = useState(initialDate)
-  const [notes, setNotes] = useState('')
+  const [selectedPerformanceId, setSelectedPerformanceId] = useState(null)
+  const [performances, setPerformances] = useState([])
   const [loading, setLoading] = useState(false)
+  const [loadingPerformances, setLoadingPerformances] = useState(true)
   const [error, setError] = useState(null)
+
+  // Charger les performances du spectacle
+  useEffect(() => {
+    const loadPerformances = async () => {
+      if (!spectacle?.id) return
+      
+      setLoadingPerformances(true)
+      setError(null)
+      try {
+        const spectacleData = await spectaclesService.getByIdWithPerformances(spectacle.id)
+        if (spectacleData?.performances && spectacleData.performances.length > 0) {
+          // Filtrer uniquement les performances à venir et disponibles
+          const availablePerformances = spectacleData.performances.filter(
+            p => p.status === 'Scheduled' && p.availableTickets > 0
+          )
+          setPerformances(availablePerformances)
+          // Sélectionner la première performance par défaut
+          if (availablePerformances.length > 0) {
+            setSelectedPerformanceId(availablePerformances[0].id)
+          }
+        } else {
+          setError('Aucune représentation disponible pour ce spectacle')
+        }
+      } catch (err) {
+        setError(err.message || 'Erreur lors du chargement des représentations')
+      } finally {
+        setLoadingPerformances(false)
+      }
+    }
+
+    loadPerformances()
+  }, [spectacle])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError(null)
 
-    // Validation
-    const validation = validateReservation({
-      spectacleId: spectacle.id,
-      quantity: Number(quantity),
-      date,
-    })
+    if (!selectedPerformanceId) {
+      setError('Veuillez sélectionner une représentation')
+      return
+    }
 
-    if (!validation.valid) {
-      setError(Object.values(validation.errors)[0])
+    if (Number(quantity) <= 0) {
+      setError('La quantité doit être supérieure à 0')
       return
     }
 
     setLoading(true)
     try {
       await onConfirm({
-        spectacleId: spectacle.id,
+        performanceId: selectedPerformanceId,
         quantity: Number(quantity),
-        date,
-        notes,
       })
       onClose()
     } catch (err) {
@@ -48,10 +72,9 @@ function ReservationModal({ spectacle, onClose, onConfirm }) {
 
   useEffect(() => {
     setQuantity(1)
-    setDate(initialDate)
-    setNotes('')
+    setSelectedPerformanceId(null)
     setError(null)
-  }, [spectacle, initialDate])
+  }, [spectacle])
 
   if (!spectacle) return null
 
@@ -63,41 +86,57 @@ function ReservationModal({ spectacle, onClose, onConfirm }) {
           <button className="btn-close" onClick={onClose} aria-label="Fermer">×</button>
         </div>
         <form className="modal-body" onSubmit={handleSubmit}>
-          <label>
-            Date
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              required
-            />
-          </label>
-          <label>
-            Quantité de tickets
-            <input
-              type="number"
-              min="1"
-              max="10"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              required
-            />
-          </label>
-          <label>
-            Notes (optionnel)
-            <textarea
-              rows="3"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Précisions, placement, etc."
-            />
-          </label>
+          {loadingPerformances ? (
+            <div className="loading">Chargement des représentations...</div>
+          ) : performances.length === 0 ? (
+            <div className="form-error">Aucune représentation disponible</div>
+          ) : (
+            <>
+              <label>
+                Représentation
+                <select
+                  value={selectedPerformanceId || ''}
+                  onChange={(e) => setSelectedPerformanceId(Number(e.target.value))}
+                  required
+                >
+                  <option value="">Sélectionnez une représentation</option>
+                  {performances.map((perf) => (
+                    <option key={perf.id} value={perf.id}>
+                      {new Date(perf.date).toLocaleDateString('fr-FR', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })} - {perf.unitPrice}€ ({perf.availableTickets} places disponibles)
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Quantité de tickets
+                <input
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  required
+                />
+              </label>
+            </>
+          )}
           {error && <div className="form-error">{error}</div>}
           <div className="modal-actions">
             <button type="button" className="btn btn-secondary" onClick={onClose}>
               Annuler
             </button>
-            <button type="submit" className="btn btn-primary" disabled={loading}>
+            <button 
+              type="submit" 
+              className="btn btn-primary" 
+              disabled={loading || loadingPerformances || performances.length === 0}
+            >
               {loading ? 'Validation...' : 'Confirmer la réservation'}
             </button>
           </div>

@@ -14,7 +14,7 @@ function Header() {
           <Link to="/programmation">Programmation</Link>
           {isAdmin && <Link to="/dashboard">Dashboard</Link>}
           {isAdmin && <Link to="/creation">Création</Link>}
-          {isAuthenticated && <Link to="/orders">Mes Commandes</Link>}
+          {isAuthenticated && !isAdmin && <Link to="/orders">Mes Commandes</Link>}
           <Link to="/user">Mon Compte</Link>
         </nav>
       </div>

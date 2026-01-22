@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import Login from '../components/Login'
 import CreateAccount from '../components/CreateAccount'
 
 function User() {
-  const { user, loading, updateUser } = useAuth()
+  const navigate = useNavigate()
+  const { user, loading, updateUser, logout } = useAuth()
   const [view, setView] = useState('menu')
 
   useEffect(() => {
@@ -92,6 +94,12 @@ function User() {
 
   // Vue du profil utilisateur
   if (user) {
+    const handleLogout = () => {
+      logout()
+      setView('menu')
+      navigate('/')
+    }
+
     return (
       <div className="user-page">
         <h2>Mon Compte</h2>
@@ -101,9 +109,20 @@ function User() {
             <p><strong>Prénom:</strong> {user.surname}</p>
             <p><strong>Email:</strong> {user.email}</p>
             <p><strong>Rôle:</strong> {user.role}</p>
-            <p><strong>Âge:</strong> {user.age}</p>
-            <p><strong>Téléphone:</strong> {user.phone}</p>
-            <p><strong>Compte confirmé:</strong> {user.confirmed_users ? 'Oui' : 'Non'}</p>
+            {user.age && <p><strong>Âge:</strong> {user.age}</p>}
+            {user.phone && <p><strong>Téléphone:</strong> {user.phone}</p>}
+            {user.confirmed_users !== undefined && (
+              <p><strong>Compte confirmé:</strong> {user.confirmed_users ? 'Oui' : 'Non'}</p>
+            )}
+          </div>
+          <div className="profile-actions" style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '1px solid #e5e7eb' }}>
+            <button 
+              className="btn btn-primary" 
+              onClick={handleLogout}
+              style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
+            >
+              Se déconnecter
+            </button>
           </div>
         </div>
       </div>

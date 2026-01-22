@@ -14,11 +14,12 @@ export function useOrders() {
     try {
       setLoading(true)
       setError(null)
-      const data = await ordersService.getAll()
-      setOrders(data)
+      const data = await ordersService.getMyOrders()
+      setOrders(Array.isArray(data) ? data : [])
     } catch (err) {
       const errorMessage = handleApiError(err)
       setError(errorMessage)
+      setOrders([])
     } finally {
       setLoading(false)
     }

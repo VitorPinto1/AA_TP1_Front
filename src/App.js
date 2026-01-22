@@ -7,6 +7,8 @@ import Orders from './pages/Orders'
 import User from './pages/User'
 import Dashboard from './pages/Dashboard'
 import Creation from './pages/Creation'
+import Payment from './pages/Payment'
+import EditSpectacle from './pages/EditSpectacle'
 
 function App() {
   return (
@@ -19,7 +21,9 @@ function App() {
             <Route path="/orders" element={<Orders />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/creation" element={<Creation />} />
+            <Route path="/spectacles/:id/edit" element={<EditSpectacle />} />
             <Route path="/user" element={<User />} />
+            <Route path="/payment" element={<Payment />} />
           </Routes>
         </Layout>
       </BrowserRouter>
