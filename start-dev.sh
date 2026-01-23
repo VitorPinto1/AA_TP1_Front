@@ -104,7 +104,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-$DOTNET_CMD run &
+$DOTNET_CMD run --launch-profile https &
 BACKEND_PID=$!
 
 # Attendre un peu que le backend démarre
@@ -118,9 +118,9 @@ npm start &
 FRONTEND_PID=$!
 
 success "✅ Applications démarrées !"
-info "Backend: http://localhost:5293"
+info "Backend: https://localhost:7035"
 info "Frontend: http://localhost:3000"
-info "Swagger: http://localhost:5293"
+info "Swagger: https://localhost:7035"
 warning "Appuyez sur Ctrl+C pour arrêter"
 
 # Attendre que les processus se terminent

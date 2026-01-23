@@ -63,7 +63,7 @@ npm start
 
 ### Services API
 
-Les services API sont configurés dans `src/services/api.js` et pointent vers `/api` (proxifié vers `http://localhost:8000` via Vite).
+Les services API sont configurés dans `src/services/api.js` et pointent vers `/api` (proxifié vers `https://localhost:7035` via `setupProxy.js`).
 
 ### Pages
 
@@ -72,4 +72,3 @@ Les services API sont configurés dans `src/services/api.js` et pointent vers `/
 - **Representations** : Liste des représentations
 - **Orders** : Liste des commandes de l'utilisateur
 - **User** : Profil utilisateur
-
