@@ -8,7 +8,7 @@ function Landing() {
     <div className="landing">
       <section className="hero">
         <div className="hero__content">
-          <p className="hero__eyebrow">Théâtre & émotions en direct</p>
+          <p className="hero__eyebrow">BIENVENUE À L’USINE À ÉMOTIONS</p>
           <h2>Réservez vos prochaines soirées en quelques clics</h2>
           <p className="hero__subtitle">
             Découvrez les spectacles à l’affiche, choisissez votre représentation

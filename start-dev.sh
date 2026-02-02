@@ -57,8 +57,12 @@ fi
 
 # Chemin du script (dossier frontend)
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-# Chemin relatif vers le backend depuis le frontend
-BACKEND_PATH="../../Billetterie-Spectacles/Billetterie-Spectacles/Billetterie-Spectacles.Presentation"
+# Dossier racine du TP (parent de front/)
+TP_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
+# Backend Billetterie Spectacles (Billeterie spectacles avec espace)
+BACKEND_PATH="$TP_ROOT/Billeterie spectacles/Billetterie-Spectacles/Billetterie-Spectacles/Billetterie-Spectacles.Presentation"
+# Service de paiement
+PAYMENT_PATH="$TP_ROOT/payment/Billetterie-PaymentService"
 
 # Vérifier si node_modules existe
 if [ ! -d "$SCRIPT_DIR/node_modules" ]; then
@@ -74,6 +78,8 @@ if [ ! -d "$SCRIPT_DIR/node_modules" ]; then
 fi
 
 # Variables pour stocker les PIDs
+MAILHOG_PID=""
+PAYMENT_PID=""
 BACKEND_PID=""
 FRONTEND_PID=""
 
@@ -81,12 +87,10 @@ FRONTEND_PID=""
 cleanup() {
     echo ""
     warning "Arrêt des applications..."
-    if [ ! -z "$BACKEND_PID" ]; then
-        kill $BACKEND_PID 2>/dev/null
-    fi
-    if [ ! -z "$FRONTEND_PID" ]; then
-        kill $FRONTEND_PID 2>/dev/null
-    fi
+    [ -n "$FRONTEND_PID" ] && kill $FRONTEND_PID 2>/dev/null
+    [ -n "$BACKEND_PID" ] && kill $BACKEND_PID 2>/dev/null
+    [ -n "$PAYMENT_PID" ] && kill $PAYMENT_PID 2>/dev/null
+    [ -n "$MAILHOG_PID" ] && kill $MAILHOG_PID 2>/dev/null
     exit
 }
 
@@ -95,33 +99,71 @@ trap cleanup SIGINT SIGTERM
 
 info "🚀 Démarrage des applications..."
 
-# Démarrer le backend
-success "📦 Démarrage du backend .NET..."
-cd "$BACKEND_PATH"
-if [ $? -ne 0 ]; then
+# 1. Démarrer MailHog (SMTP 1025, Web UI 8025)
+if command -v MailHog &> /dev/null || command -v mailhog &> /dev/null; then
+    success "📧 Démarrage de MailHog..."
+    (MailHog 2>/dev/null || mailhog 2>/dev/null) &
+    MAILHOG_PID=$!
+    sleep 1
+    info "   MailHog Web UI: http://localhost:8025 (emails de confirmation)"
+else
+    warning "MailHog non trouvé. Les emails seront envoyés vers localhost:1025."
+    warning "Installation: brew install mailhog"
+fi
+
+# 2. Démarrer le service de paiement
+success "💳 Démarrage du service de paiement .NET..."
+if [ -d "$PAYMENT_PATH" ]; then
+    cd "$PAYMENT_PATH"
+    $DOTNET_CMD run --launch-profile https &
+    PAYMENT_PID=$!
+    cd "$SCRIPT_DIR"
+    info "   Payment API: https://localhost:7049"
+    sleep 3
+else
+    warning "Dossier payment non trouvé: $PAYMENT_PATH"
+fi
+
+# 3. Démarrer le backend Billetterie Spectacles
+success "📦 Démarrage du backend Billetterie Spectacles..."
+if [ ! -d "$BACKEND_PATH" ]; then
     error "Impossible de trouver le dossier backend"
     warning "Vérifiez le chemin: $BACKEND_PATH"
     exit 1
 fi
-
+cd "$BACKEND_PATH"
 $DOTNET_CMD run --launch-profile https &
 BACKEND_PID=$!
 
-# Attendre un peu que le backend démarre
-info "⏳ Attente du démarrage du backend..."
-sleep 5
+# Attendre que le backend réponde (évite ECONNREFUSED sur le proxy)
+info "⏳ Attente du démarrage du backend (https://localhost:7035)..."
+BACKEND_URL="https://localhost:7035"
+MAX_ATTEMPTS=15
+for i in $(seq 1 $MAX_ATTEMPTS); do
+    if curl -k -s -o /dev/null -w "%{http_code}" "$BACKEND_URL" 2>/dev/null | grep -q "200\|301\|302"; then
+        success "   Backend prêt."
+        break
+    fi
+    if [ $i -eq $MAX_ATTEMPTS ]; then
+        warning "Le backend ne répond pas après ${MAX_ATTEMPTS}s."
+        warning "Vérifiez que SQL Server est démarré et les messages du backend ci-dessus."
+        warning "Le frontend va démarrer quand même ; les appels /api renverront ECONNREFUSED tant que le backend n'est pas up."
+    fi
+    sleep 2
+done
 
-# Démarrer le frontend
+# 4. Démarrer le frontend
 success "⚛️  Démarrage du frontend React..."
 cd "$SCRIPT_DIR"
 npm start &
 FRONTEND_PID=$!
 
-success "✅ Applications démarrées !"
-info "Backend: https://localhost:7035"
-info "Frontend: http://localhost:3000"
-info "Swagger: https://localhost:7035"
-warning "Appuyez sur Ctrl+C pour arrêter"
+success "✅ Toutes les applications sont démarrées !"
+info "Frontend:    http://localhost:3000"
+info "Backend:     https://localhost:7035 (Swagger: https://localhost:7035)"
+info "Payment:     https://localhost:7049"
+info "MailHog:     http://localhost:8025 (voir les emails envoyés)"
+warning "Appuyez sur Ctrl+C pour tout arrêter"
 
 # Attendre que les processus se terminent
 wait

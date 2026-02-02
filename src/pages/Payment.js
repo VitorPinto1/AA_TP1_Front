@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import { ordersService, spectaclesService, performancesService } from '../services/api'
 
 function Payment() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [reservationData, setReservationData] = useState(null)
@@ -137,10 +139,13 @@ function Payment() {
       
       const order = await ordersService.create(payload)
       
-      // Rediriger vers la page des commandes avec un message de succès
+      // Rediriger vers la page des commandes avec message de succès + email
+      const emailMsg = user?.email
+        ? ` Un email de confirmation vous a été envoyé à ${user.email}.`
+        : ''
       navigate('/orders', { 
         state: { 
-          message: 'Paiement effectué avec succès !',
+          message: `Paiement effectué avec succès !${emailMsg}`,
           orderId: order.id 
         } 
       })
@@ -243,7 +248,7 @@ function Payment() {
             <div className="payment-info">
               <p className="info-text">
                 <small>
-                  💳 Mode simulation : Ce paiement est simulé. Aucune transaction réelle ne sera effectuée.
+                  💳 Le paiement est traité par le service de paiement (mock ou Stripe). Un email de confirmation vous sera envoyé après validation.
                 </small>
               </p>
             </div>
