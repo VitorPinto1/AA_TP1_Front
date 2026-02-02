@@ -34,11 +34,25 @@ npm install
 
 ## Développement
 
+### Démarrage rapide (frontend + services)
+
+```bash
+./start-dev.sh
+```
+
+Le script démarre automatiquement :
+- Frontend React (port `3000`)
+- Backend Billetterie Spectacles (port `7035`)
+- Service de paiement (port `7049`)
+- MailHog (SMTP `1025`, Web UI `8025`)
+
+### Démarrage du frontend seul
+
 ```bash
 npm start
 ```
 
-L'application sera accessible sur `http://localhost:3000`
+L'application sera accessible sur `http://localhost:3000`.
 
 ## Build
 
@@ -64,6 +78,13 @@ npm start
 ### Services API
 
 Les services API sont configurés dans `src/services/api.js` et pointent vers `/api` (proxifié vers `https://localhost:7035` via `setupProxy.js`).
+
+### Ports par défaut
+
+- Frontend: `http://localhost:3000`
+- Backend: `https://localhost:7035`
+- Payment: `https://localhost:7049`
+- MailHog: `http://localhost:8025` (SMTP `1025`)
 
 ### Pages
 
