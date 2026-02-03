@@ -1,24 +1,26 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
+import { loadStripe } from '@stripe/stripe-js'
 import { useAuth } from '../context/AuthContext'
 import { ordersService, spectaclesService, performancesService } from '../services/api'
 
-function Payment() {
+const stripePublicKey = process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY
+const stripePromise = stripePublicKey ? loadStripe(stripePublicKey) : null
+
+function PaymentContent() {
   const navigate = useNavigate()
   const location = useLocation()
   const { user } = useAuth()
+  const stripe = useStripe()
+  const elements = useElements()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [reservationData, setReservationData] = useState(null)
   const [performance, setPerformance] = useState(null)
   const [spectacle, setSpectacle] = useState(null)
   const [totalPrice, setTotalPrice] = useState(0)
-
-  // Données du formulaire de paiement (préremplies avec des données factices)
-  const [cardNumber, setCardNumber] = useState('4242 4242 4242 4242')
   const [cardName, setCardName] = useState('JEAN DUPONT')
-  const [cardExpiry, setCardExpiry] = useState('12/25')
-  const [cardCvv, setCardCvv] = useState('123')
 
   useEffect(() => {
     // Récupérer les données de réservation depuis location.state
@@ -63,70 +65,42 @@ function Payment() {
     }
   }
 
-  const formatCardNumber = (value) => {
-    // Enlever tous les espaces
-    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '')
-    // Ajouter un espace tous les 4 chiffres
-    const matches = v.match(/\d{4,16}/g)
-    const match = (matches && matches[0]) || ''
-    const parts = []
-    for (let i = 0, len = match.length; i < len; i += 4) {
-      parts.push(match.substring(i, i + 4))
-    }
-    if (parts.length) {
-      return parts.join(' ')
-    } else {
-      return v
-    }
-  }
-
-  const formatExpiry = (value) => {
-    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '')
-    if (v.length >= 2) {
-      return v.substring(0, 2) + '/' + v.substring(2, 4)
-    }
-    return v
-  }
-
-  const handleCardNumberChange = (e) => {
-    const formatted = formatCardNumber(e.target.value)
-    setCardNumber(formatted)
-  }
-
-  const handleExpiryChange = (e) => {
-    const formatted = formatExpiry(e.target.value)
-    setCardExpiry(formatted)
-  }
-
-  const handleCvvChange = (e) => {
-    const v = e.target.value.replace(/\D/g, '').substring(0, 3)
-    setCardCvv(v)
-  }
-
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError(null)
 
     // Validation du formulaire
-    if (cardNumber.replace(/\s/g, '').length < 16) {
-      setError('Numéro de carte invalide')
-      return
-    }
     if (!cardName.trim()) {
       setError('Nom sur la carte requis')
       return
     }
-    if (cardExpiry.length < 5) {
-      setError('Date d\'expiration invalide')
+    if (!stripe || !elements) {
+      setError('Stripe n\'est pas encore chargé')
       return
     }
-    if (cardCvv.length < 3) {
-      setError('CVV invalide')
+
+    const cardElement = elements.getElement(CardElement)
+    if (!cardElement) {
+      setError('Champ de carte indisponible')
       return
     }
 
     setLoading(true)
     try {
+      const { error: paymentMethodError, paymentMethod } = await stripe.createPaymentMethod({
+        type: 'card',
+        card: cardElement,
+        billing_details: {
+          name: cardName.trim(),
+          email: user?.email || undefined,
+        },
+      })
+
+      if (paymentMethodError) {
+        setError(paymentMethodError.message || 'Erreur lors de la création du moyen de paiement')
+        return
+      }
+
       // Créer la commande (le paiement est simulé côté backend avec MockPaymentService)
       const payload = {
         items: [
@@ -135,6 +109,7 @@ function Payment() {
             quantity: reservationData.quantity,
           },
         ],
+        paymentMethodId: paymentMethod?.id,
       }
       
       const order = await ordersService.create(payload)
@@ -194,15 +169,23 @@ function Payment() {
           <form className="payment-form" onSubmit={handleSubmit}>
             <div className="form-group">
               <label htmlFor="cardNumber">Numéro de carte</label>
-              <input
-                type="text"
-                id="cardNumber"
-                placeholder="1234 5678 9012 3456"
-                value={cardNumber}
-                onChange={handleCardNumberChange}
-                maxLength="19"
-                required
-              />
+              <div className="stripe-card-element">
+                <CardElement
+                  options={{
+                    hidePostalCode: true,
+                    style: {
+                      base: {
+                        fontSize: '16px',
+                        color: '#111827',
+                        '::placeholder': { color: '#9CA3AF' },
+                      },
+                      invalid: {
+                        color: '#EF4444',
+                      },
+                    },
+                  }}
+                />
+              </div>
             </div>
 
             <div className="form-group">
@@ -217,38 +200,10 @@ function Payment() {
               />
             </div>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="cardExpiry">Date d'expiration</label>
-                <input
-                  type="text"
-                  id="cardExpiry"
-                  placeholder="MM/AA"
-                  value={cardExpiry}
-                  onChange={handleExpiryChange}
-                  maxLength="5"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="cardCvv">CVV</label>
-                <input
-                  type="text"
-                  id="cardCvv"
-                  placeholder="123"
-                  value={cardCvv}
-                  onChange={handleCvvChange}
-                  maxLength="3"
-                  required
-                />
-              </div>
-            </div>
-
             <div className="payment-info">
               <p className="info-text">
                 <small>
-                  💳 Le paiement est traité par le service de paiement (mock ou Stripe). Un email de confirmation vous sera envoyé après validation.
+                  💳 Le paiement est traité par Stripe. Un email de confirmation vous sera envoyé après validation.
                 </small>
               </p>
             </div>
@@ -274,6 +229,26 @@ function Payment() {
         </div>
       </div>
     </div>
+  )
+}
+
+function Payment() {
+  if (!stripePromise) {
+    return (
+      <div className="payment-page">
+        <div className="payment-container">
+          <div className="alert error">
+            Stripe n'est pas configuré. Ajoutez `REACT_APP_STRIPE_PUBLISHABLE_KEY` dans votre environnement.
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <Elements stripe={stripePromise}>
+      <PaymentContent />
+    </Elements>
   )
 }
 
