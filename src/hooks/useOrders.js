@@ -15,7 +15,21 @@ export function useOrders() {
       setLoading(true)
       setError(null)
       const data = await ordersService.getMyOrders()
-      setOrders(Array.isArray(data) ? data : [])
+      const baseOrders = Array.isArray(data) ? data : []
+
+      // Charger les détails complets (tickets + spectacle) pour chaque commande
+      const detailedOrders = await Promise.all(
+        baseOrders.map(async (order) => {
+          try {
+            const fullOrder = await ordersService.getById(order.id)
+            return fullOrder || order
+          } catch {
+            return order
+          }
+        })
+      )
+
+      setOrders(detailedOrders)
     } catch (err) {
       const errorMessage = handleApiError(err)
       setError(errorMessage)
@@ -29,8 +43,17 @@ export function useOrders() {
     try {
       setError(null)
       const newOrder = await ordersService.create(orderData)
-      setOrders((prev) => [newOrder, ...prev])
-      return newOrder
+
+      // Récupérer la commande avec ses tickets pour affichage cohérent
+      let detailedOrder = newOrder
+      try {
+        detailedOrder = await ordersService.getById(newOrder.id)
+      } catch {
+        // en cas d'erreur, on garde la commande de base
+      }
+
+      setOrders((prev) => [detailedOrder, ...prev])
+      return detailedOrder
     } catch (err) {
       const errorMessage = handleApiError(err)
       setError(errorMessage)

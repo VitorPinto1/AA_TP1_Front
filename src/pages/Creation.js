@@ -4,15 +4,15 @@ import { useAuth } from '../hooks/useAuth'
 import { spectaclesService, performancesService } from '../services/api'
 import { handleApiError } from '../utils/errorHandler'
 
-function RequireAdmin({ children }) {
-  const { isAdmin, loading } = useAuth()
+function RequireAdminOrOrganizer({ children }) {
+  const { isAdmin, isOrganizer, loading } = useAuth()
   const navigate = useNavigate()
 
   if (loading) {
     return <div className="loading">Chargement...</div>
   }
 
-  if (!isAdmin) {
+  if (!(isAdmin || isOrganizer)) {
     navigate('/')
     return null
   }
@@ -21,7 +21,7 @@ function RequireAdmin({ children }) {
 }
 
 function Creation() {
-  const { isAdmin } = useAuth()
+  const { isAdmin, isOrganizer } = useAuth()
   const navigate = useNavigate()
   const [formData, setFormData] = useState({
     name: '',
@@ -137,7 +137,7 @@ function Creation() {
     }
   }
 
-  if (!isAdmin) {
+  if (!(isAdmin || isOrganizer)) {
     return (
       <div className="creation-page">
         <div className="alert error">Accès refusé. Cette page est réservée aux administrateurs.</div>
@@ -146,7 +146,7 @@ function Creation() {
   }
 
   return (
-    <RequireAdmin>
+    <RequireAdminOrOrganizer>
       <div className="creation-page">
         <h2>Créer un nouveau spectacle</h2>
 
@@ -324,7 +324,7 @@ function Creation() {
           </div>
         </form>
       </div>
-    </RequireAdmin>
+    </RequireAdminOrOrganizer>
   )
 }
 

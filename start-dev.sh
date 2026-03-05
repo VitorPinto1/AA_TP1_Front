@@ -132,7 +132,7 @@ if [ ! -d "$BACKEND_PATH" ]; then
     exit 1
 fi
 cd "$BACKEND_PATH"
-$DOTNET_CMD run --launch-profile https &
+ASPNETCORE_ENVIRONMENT=Development $DOTNET_CMD run --urls "https://localhost:7035" &
 BACKEND_PID=$!
 
 # Attendre que le backend réponde (évite ECONNREFUSED sur le proxy)

@@ -6,7 +6,7 @@ import { handleApiError } from '../utils/errorHandler'
 
 function EditSpectacle() {
   const { id } = useParams()
-  const { isAdmin } = useAuth()
+  const { isAdmin, isOrganizer } = useAuth()
   const navigate = useNavigate()
   const [formData, setFormData] = useState({
     name: '',
@@ -21,13 +21,13 @@ function EditSpectacle() {
   const [success, setSuccess] = useState(null)
 
   useEffect(() => {
-    if (!isAdmin) {
+    if (!(isAdmin || isOrganizer)) {
       navigate('/programmation')
       return
     }
 
     loadSpectacle()
-  }, [id, isAdmin, navigate])
+  }, [id, isAdmin, isOrganizer, navigate])
 
   const loadSpectacle = async () => {
     try {
@@ -106,7 +106,7 @@ function EditSpectacle() {
     return <div className="loading">Chargement...</div>
   }
 
-  if (!isAdmin) {
+  if (!(isAdmin || isOrganizer)) {
     return (
       <div className="creation-page">
         <div className="alert error">Accès refusé. Cette page est réservée aux administrateurs.</div>

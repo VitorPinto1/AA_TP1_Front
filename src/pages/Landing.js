@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
 function Landing() {
-  const { isAuthenticated, isAdmin } = useAuth()
+  const { isAuthenticated, isAdmin, isOrganizer } = useAuth()
 
   return (
     <div className="landing">
@@ -18,8 +18,13 @@ function Landing() {
             <Link to="/programmation" className="btn btn-primary">
               Voir la programmation
             </Link>
-            {isAuthenticated && !isAdmin && (
+            {isAuthenticated && !(isAdmin || isOrganizer) && (
               <Link to="/orders" className="btn btn-secondary">Mes commandes</Link>
+            )}
+            {(isAdmin || isOrganizer) && (
+              <Link to="/creation" className="btn btn-secondary">
+                Créer un spectacle
+              </Link>
             )}
           </div>
         </div>
@@ -30,7 +35,7 @@ function Landing() {
           <h3>Programmation</h3>
           <p>Consultez les spectacles à l’affiche et réservez vos places.</p>
         </Link>
-        {!isAdmin && (
+        {!(isAdmin || isOrganizer) && (
           <Link to="/orders" className="feature-card feature-card-link">
             <h3>Suivi de vos commandes</h3>
           <p>Retrouvez vos réservations et billets en un clin d’œil.</p>
