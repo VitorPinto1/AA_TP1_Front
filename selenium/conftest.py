@@ -21,7 +21,7 @@ def driver():
     Instancie un navigateur Chrome pour l'ensemble de la session de tests.
     """
     options = ChromeOptions()
-    # options.add_argument("--headless=new")  # décommente pour exécuter les tests sans fenêtre
+    # options.add_argument("--headless=new")  
     options.add_argument("--window-size=1280,800")
 
     service = ChromeService(ChromeDriverManager().install())
