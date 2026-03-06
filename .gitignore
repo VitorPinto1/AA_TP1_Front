@@ -126,3 +126,8 @@ storybook-static
 .tern-port
 npm_cache/
 npm-cache/
+
+.venv/
+
+selenium/__pycache__
+selenium/.pytest_cache

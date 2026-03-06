@@ -36,7 +36,8 @@ async function fetchAPI(endpoint, options = {}) {
       }
       throw error
     }
-    return await response.json()
+    const text = await response.text()
+    return text ? JSON.parse(text) : null
   } catch (error) {
     console.error('API Error:', error)
     throw error

@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
 
 const colors = [
   '#2563eb',
@@ -91,9 +93,18 @@ function PieChart({ data, title }) {
 }
 
 function Dashboard() {
+  const { isAdmin, isOrganizer, loading: authLoading } = useAuth()
+  const navigate = useNavigate()
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+
+  useEffect(() => {
+    if (!authLoading && !(isAdmin || isOrganizer)) {
+      navigate('/')
+      return
+    }
+  }, [isAdmin, isOrganizer, authLoading, navigate])
 
   useEffect(() => {
     const load = async () => {

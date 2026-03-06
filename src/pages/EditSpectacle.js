@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { spectaclesService } from '../services/api'
+import { spectaclesService, performancesService } from '../services/api'
 import { handleApiError } from '../utils/errorHandler'
 
 function EditSpectacle() {
@@ -15,8 +15,11 @@ function EditSpectacle() {
     category: '',
     thumbnail: '',
   })
+  const [performances, setPerformances] = useState([])
+  const [deletedPerformanceIds, setDeletedPerformanceIds] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
 
@@ -29,11 +32,18 @@ function EditSpectacle() {
     loadSpectacle()
   }, [id, isAdmin, isOrganizer, navigate])
 
+  const toDatetimeLocal = (isoString) => {
+    if (!isoString) return ''
+    const dt = new Date(isoString)
+    const pad = (n) => String(n).padStart(2, '0')
+    return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`
+  }
+
   const loadSpectacle = async () => {
     try {
       setLoading(true)
       setError(null)
-      const spectacle = await spectaclesService.getById(id)
+      const spectacle = await spectaclesService.getByIdWithPerformances(id)
       
       setFormData({
         name: spectacle.name || '',
@@ -42,6 +52,18 @@ function EditSpectacle() {
         category: spectacle.category || '',
         thumbnail: spectacle.thumbnail || '',
       })
+
+      const perfs = spectacle.performances || []
+      if (perfs.length > 0) {
+        setPerformances(perfs.map(p => ({
+          id: p.id,
+          date: toDatetimeLocal(p.date),
+          capacity: p.capacity?.toString() || '',
+          unitPrice: p.unitPrice?.toString() || '',
+        })))
+      } else {
+        setPerformances([{ id: null, date: '', capacity: '', unitPrice: '' }])
+      }
     } catch (err) {
       const errorMessage = handleApiError(err)
       setError(errorMessage)
@@ -58,6 +80,51 @@ function EditSpectacle() {
     }))
     setError(null)
     setSuccess(null)
+  }
+
+  const handlePerformanceChange = (index, field, value) => {
+    const updated = [...performances]
+    updated[index] = { ...updated[index], [field]: value }
+    setPerformances(updated)
+    setError(null)
+  }
+
+  const addPerformance = () => {
+    setPerformances([...performances, { id: null, date: '', capacity: '', unitPrice: '' }])
+  }
+
+  const removePerformance = (index) => {
+    const perf = performances[index]
+    if (perf.id) {
+      setDeletedPerformanceIds(prev => [...prev, perf.id])
+    }
+    if (performances.length > 1) {
+      setPerformances(performances.filter((_, i) => i !== index))
+    } else {
+      setPerformances([{ id: null, date: '', capacity: '', unitPrice: '' }])
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce spectacle ? Cette action est irréversible.')) {
+      return
+    }
+    setDeleting(true)
+    setError(null)
+    try {
+      const existingPerfs = performances.filter(p => p.id)
+      await Promise.all(existingPerfs.map(p => performancesService.delete(p.id)))
+      await spectaclesService.delete(id)
+      setSuccess('Spectacle supprimé avec succès !')
+      setTimeout(() => {
+        navigate('/programmation')
+      }, 1500)
+    } catch (err) {
+      const errorMessage = handleApiError(err)
+      setError(errorMessage)
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -89,8 +156,33 @@ function EditSpectacle() {
         duration: durationInMinutes,
         thumbnail: formData.thumbnail || null,
       })
-      setSuccess('Spectacle modifié avec succès !')
-      // Rediriger après 2 secondes
+
+      // Supprimer les représentations marquées
+      await Promise.all(
+        deletedPerformanceIds.map(perfId => performancesService.delete(perfId))
+      )
+
+      // Mettre à jour / créer les représentations
+      const perfPromises = performances
+        .filter(p => p.date && p.capacity && p.unitPrice)
+        .map(p => {
+          const perfDate = new Date(p.date)
+          if (perfDate <= new Date()) {
+            throw new Error('Les dates de représentation doivent être dans le futur')
+          }
+          const payload = {
+            date: perfDate.toISOString(),
+            capacity: parseInt(p.capacity, 10),
+            unitPrice: parseFloat(p.unitPrice),
+          }
+          if (p.id) {
+            return performancesService.update(p.id, payload)
+          }
+          return performancesService.create(id, payload)
+        })
+      await Promise.all(perfPromises)
+
+      setSuccess('Spectacle et représentations modifiés avec succès !')
       setTimeout(() => {
         navigate('/programmation')
       }, 2000)
@@ -198,13 +290,107 @@ function EditSpectacle() {
           />
         </div>
 
-        <div className="form-actions">
-          <button type="button" className="btn btn-secondary" onClick={() => navigate('/programmation')}>
-            Annuler
+        <div className="form-group" style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '1px solid #e5e7eb' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <label style={{ margin: 0 }}>
+              <strong>Représentations</strong>
+            </label>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={addPerformance}
+              style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
+            >
+              + Ajouter une représentation
+            </button>
+          </div>
+
+          {performances.map((perf, index) => (
+            <div key={perf.id || `new-${index}`} style={{
+              marginBottom: '1rem',
+              padding: '1rem',
+              background: '#f8f9fa',
+              borderRadius: '8px',
+              border: '1px solid #e5e7eb'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <strong>Représentation #{index + 1}</strong>
+                <button
+                  type="button"
+                  onClick={() => removePerformance(index)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#dc3545',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  Supprimer
+                </button>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Date et heure</label>
+                  <input
+                    type="datetime-local"
+                    value={perf.date}
+                    onChange={(e) => handlePerformanceChange(index, 'date', e.target.value)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Capacité</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100000"
+                    value={perf.capacity}
+                    onChange={(e) => handlePerformanceChange(index, 'capacity', e.target.value)}
+                    placeholder="Ex: 200"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Prix unitaire (€)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="10000"
+                    step="0.01"
+                    value={perf.unitPrice}
+                    onChange={(e) => handlePerformanceChange(index, 'unitPrice', e.target.value)}
+                    placeholder="Ex: 45.00"
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="form-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={deleting || saving}
+            style={{
+              background: '#dc3545',
+              color: 'white',
+              border: 'none',
+              padding: '0.75rem 1.5rem',
+              borderRadius: '6px',
+              cursor: deleting ? 'not-allowed' : 'pointer',
+              opacity: deleting ? 0.6 : 1,
+            }}
+          >
+            {deleting ? 'Suppression...' : 'Supprimer le spectacle'}
           </button>
-          <button type="submit" className="btn btn-primary" disabled={saving}>
-            {saving ? 'Enregistrement...' : 'Enregistrer les modifications'}
-          </button>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button type="button" className="btn btn-secondary" onClick={() => navigate('/programmation')}>
+              Annuler
+            </button>
+            <button type="submit" className="btn btn-primary" disabled={saving || deleting}>
+              {saving ? 'Enregistrement...' : 'Enregistrer les modifications'}
+            </button>
+          </div>
         </div>
       </form>
     </div>
